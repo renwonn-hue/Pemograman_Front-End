@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense Tracker</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #e8f4fd 0%, #f0f2f5 50%, #fef9f0 100%);
+        color: #333;
+        min-height: 100vh;
+        padding: 24px 16px 60px;
+      }
+
+      .app-header {
+        text-align: center;
+        margin-bottom: 28px;
+        animation: fadeDown 0.6s ease both;
+      }
+      .app-header h1 {
+        font-size: 2rem;
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .app-header p { font-size: 0.85rem; color: #999; margin-top: 4px; }
+
+      .container { max-width: 640px; margin: 0 auto; }
+
+      /* Summary */
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+        animation: fadeDown 0.6s ease 0.1s both;
+      }
+      .summary-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 18px 12px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .summary-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 14px 14px 0 0;
+      }
+      .summary-card:nth-child(1)::before { background: linear-gradient(90deg, #3498db, #2980b9); }
+      .summary-card:nth-child(2)::before { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+      .summary-card:nth-child(3)::before { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+      .summary-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+      .summary-card h3 { font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+      .summary-card p { font-size: 1.05rem; font-weight: 700; transition: transform 0.15s ease; }
+      .summary-card p.bump { transform: scale(1.15); }
+      #totalBalance { color: #2c3e50; }
+      #totalIncome  { color: #27ae60; }
+      #totalExpense { color: #e74c3c; }
+
+      /* Form */
+      .form-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 22px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+        animation: fadeDown 0.6s ease 0.2s both;
+      }
+      .form-card h2 { font-size: 1rem; margin-bottom: 18px; color: #2c3e50; display: flex; align-items: center; gap: 8px; }
+      .form-group { margin-bottom: 13px; }
+      .form-group label { display: block; font-size: 0.82rem; color: #666; margin-bottom: 5px; font-weight: 500; }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 9px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.25s, box-shadow 0.25s, transform 0.15s;
+        background: #fafafa;
+      }
+      .form-group input:focus,
+      .form-group select:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
+        background: #fff;
+        transform: translateY(-1px);
+      }
+      button[type="submit"] {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: #fff;
+        border: none;
+        border-radius: 9px;
+        font-size: 1rem;
+        cursor: pointer;
+        font-weight: 600;
+        margin-top: 6px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.15s, box-shadow 0.2s;
+        letter-spacing: 0.3px;
+      }
+      button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52,152,219,0.4); }
+      button[type="submit"]:active { transform: translateY(0); box-shadow: none; }
+      button[type="submit"].loading {
+        background: linear-gradient(90deg, #3498db 25%, #5dade2 50%, #3498db 75%);
+        background-size: 200% auto;
+        animation: shimmer 0.8s linear infinite;
+        pointer-events: none;
+      }
+
+      /* List */
+      .list-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+        animation: fadeDown 0.6s ease 0.3s both;
+      }
+      .list-card h2 { font-size: 1rem; margin-bottom: 18px; color: #2c3e50; display: flex; align-items: center; gap: 8px; }
+      .list-count { background: #3498db; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+
+      #emptyState {
+        text-align: center;
+        color: #bbb;
+        font-size: 0.9rem;
+        padding: 32px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      #emptyState::before { content: "📭"; font-size: 2.5rem; }
+
+      /* Transaction item */
+      div[data-testid="transactionItem"] {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        border-left: 4px solid transparent;
+        background-color: #f8f9fa;
+        gap: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        animation: slideUp 0.35s ease both;
+        position: relative;
+        overflow: hidden;
+      }
+      div[data-testid="transactionItem"]:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        background-color: #f1f3f5;
+      }
+      div[data-testid="transactionItem"].income { border-left-color: #27ae60; }
+      div[data-testid="transactionItem"].expense { border-left-color: #e74c3c; }
+      div[data-testid="transactionItem"].removing { animation: slideOut 0.3s ease forwards; }
+
+      .transaction-info { flex: 1; }
+      div[data-testid="transactionItem"] h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 5px; }
+      div[data-testid="transactionItem"] p { font-size: 0.82rem; color: #777; margin-bottom: 2px; }
+      p[data-testid="transactionItemAmount"] { font-weight: 700 !important; color: #333 !important; font-size: 0.9rem !important; }
+      p[data-testid="transactionItemType"].income { color: #27ae60 !important; font-weight: 600 !important; }
+      p[data-testid="transactionItemType"].expense { color: #e74c3c !important; font-weight: 600 !important; }
+
+      .transaction-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+      .transaction-actions button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 7px;
+        font-size: 0.78rem;
+        cursor: pointer;
+        font-weight: 600;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .transaction-actions button:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+      .transaction-actions button:active { transform: translateY(0); }
+      button[data-testid="transactionItemEditTypeButton"] { background: linear-gradient(135deg, #f39c12, #e67e22); color: #fff; }
+      button[data-testid="transactionItemDeleteButton"]   { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; }
+
+      /* Ripple */
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.45);
+        transform: scale(0);
+        animation: rippleAnim 0.55s linear;
+        pointer-events: none;
+      }
+
+      /* Toast */
+      #toastContainer {
+        position: fixed;
+        bottom: 24px; right: 24px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-end;
+      }
+      .toast {
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        animation: toastIn 0.3s ease both;
+        max-width: 280px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toast.success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+      .toast.error   { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+      .toast.info    { background: linear-gradient(135deg, #3498db, #2980b9); }
+      .toast.hide    { animation: toastOut 0.3s ease forwards; }
+
+      /* Keyframes */
+      @keyframes fadeDown {
+        from { opacity: 0; transform: translateY(-16px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes slideOut {
+        to { opacity: 0; transform: translateX(60px) scaleY(0.8); max-height: 0; margin: 0; padding: 0; }
+      }
+      @keyframes rippleAnim {
+        to { transform: scale(4); opacity: 0; }
+      }
+      @keyframes toastIn {
+        from { opacity: 0; transform: translateX(30px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes toastOut {
+        to { opacity: 0; transform: translateX(30px); }
+      }
+      @keyframes shimmer {
+        to { background-position: 200% center; }
+      }
+
+      @media (max-width: 480px) {
+        .summary { grid-template-columns: 1fr; }
+        #toastContainer { right: 12px; bottom: 12px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toastContainer"></div>
+
+    <div class="container">
+      <div class="app-header">
+        <h1>Expense Tracker</h1>
+        <p>Kelola keuanganmu dengan mudah</p>
+      </div>
+
+      <div class="summary">
+        <div class="summary-card">
+          <h3>Saldo</h3>
+          <p id="totalBalance">Rp0</p>
+        </div>
+        <div class="summary-card">
+          <h3>Pemasukan</h3>
+          <p id="totalIncome">Rp0</p>
+        </div>
+        <div class="summary-card">
+          <h3>Pengeluaran</h3>
+          <p id="totalExpense">Rp0</p>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Tambah Transaksi</h2>
+        <form id="transactionForm">
+          <div class="form-group">
+            <label for="transactionTitle">Judul</label>
+            <input type="text" id="transactionTitle" placeholder="Contoh: Gaji bulanan" required />
+          </div>
+          <div class="form-group">
+            <label for="transactionAmount">Nominal (Rp)</label>
+            <input type="number" id="transactionAmount" placeholder="Contoh: 500000" min="1" required />
+          </div>
+          <div class="form-group">
+            <label for="transactionDate">Tanggal</label>
+            <input type="date" id="transactionDate" required />
+          </div>
+          <div class="form-group">
+            <label for="transactionType">Tipe</label>
+            <select id="transactionType" required>
+              <option value="income">Pemasukan</option>
+              <option value="expense">Pengeluaran</option>
+            </select>
+          </div>
+          <button type="submit">Tambah Transaksi</button>
+        </form>
+      </div>
+
+      <div class="list-card">
+        <h2>
+          Riwayat Transaksi
+          <span class="list-count" id="listCount">0</span>
+        </h2>
+        <div id="transactionList">
+          <p id="emptyState">Belum ada transaksi. Tambahkan transaksi pertamamu!</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
